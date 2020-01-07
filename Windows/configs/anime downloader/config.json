@@ -1,0 +1,38 @@
+{
+    "dl": {
+        "download_dir": ".",
+        "external_downloader": "{aria2}",
+        "fallback_qualities": [
+            "720p",
+            "480p",
+            "360p"
+        ],
+        "file_format": "{anime_title}/{anime_title}_{ep_no}",
+        "force_download": false,
+        "player": "mpvnet",
+        "provider": "animeflix",
+        "quality": "1080p",
+        "skip_download": false,
+        "url": false
+    },
+    "siteconfig": {
+        "animeflv": {
+            "server": "natsuki",
+            "version": "subbed"
+        },
+        "anistream.xyz": {
+            "version": "subbed"
+        },
+        "gogoanime": {
+            "server": "cdn"
+        },
+        "nineanime": {
+            "server": "mp4upload"
+        }
+    },
+    "watch": {
+        "log_level": "INFO",
+        "provider": "kisscartoon",
+        "quality": "720p"
+    }
+}

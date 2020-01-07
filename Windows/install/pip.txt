@@ -1,0 +1,4 @@
+colorama
+speedtest-cli
+glances
+anime-downloader
