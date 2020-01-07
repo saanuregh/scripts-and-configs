@@ -571,6 +571,7 @@ Get-Content ".\install\npm.txt" | ForEach-Object {
 #endregion Aria2
 
 #region Random stuffs
+
 [System.Environment]::SetEnvironmentVariable("PATH", $Env:Path + ";C:\Program Files\mpv.net", "Machine")
 git config --global core.editor "code --wait"
 code --install-extension Shan.code-settings-sync
@@ -593,7 +594,7 @@ Get-Content ".\install\powershell_pre.txt" | ForEach-Object {
 	Install-Module "$_" -Scope CurrentUser -AllowClobber -AllowPrerelease -Force
 }
 $profileDir = Split-Path -parent $profile
-if (-Not (Test-Path $$profileDir)) {
+if (-Not (Test-Path $profileDir)) {
 	mkdir $profileDir
 }
 Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/skywind3000/z.lua/master/z.lua' -Out "$profileDir\z.lua"

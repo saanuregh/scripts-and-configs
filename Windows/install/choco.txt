@@ -12,6 +12,7 @@ microsoft-edge-insider
 dotnet3.5
 dotnet4.5.2
 vcredist-all
+sdio
 directx
 spotify
 qbittorrent
