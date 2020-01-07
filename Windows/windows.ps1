@@ -3,7 +3,7 @@ If (!([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]:
 }
 
 Set-ExecutionPolicy Unrestricted -Force
-mkdir "temp" -Force ; Set-Location temp
+mkdir "temp" -Force
 
 #debloat
 Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://git.io/debloat'))
@@ -156,7 +156,7 @@ $taskmgr = Get-Process -Name Taskmgr -ErrorAction SilentlyContinue
 IF ($taskmgr) {
 	$taskmgr.CloseMainWindow()
 }
-Start-Process -FilePath .\Taskmgr.exe -WindowStyle Hidden -PassThru
+Start-Process -FilePath Taskmgr.exe -WindowStyle Hidden -PassThru
 Do {
 	Start-Sleep -Milliseconds 100
 	$preferences = Get-ItemProperty -Path HKCU:\Software\Microsoft\Windows\CurrentVersion\TaskManager -Name Preferences -ErrorAction SilentlyContinue
