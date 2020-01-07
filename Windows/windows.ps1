@@ -1,9 +1,11 @@
-If (!([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]"Administrator")) {
+. .\powershell\functions.ps1
+If (!Test-Administrator) {
 	Write-Host "Run as administrator!!!"; Pause; Exit
 }
 
 Set-ExecutionPolicy Unrestricted -Force
 mkdir "temp" -Force
+
 
 #debloat
 Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://git.io/debloat'))
@@ -447,8 +449,8 @@ New-ItemProperty -Path "HKCU:\Control Panel\Mouse" -Name MouseSensitivity -Prope
 New-ItemProperty -Path "HKCU:\Control Panel\Mouse" -Name MouseSpeed -PropertyType String -Value 0 -Force
 New-ItemProperty -Path "HKCU:\Control Panel\Mouse" -Name MouseThreshold1 -PropertyType String -Value 0 -Force
 New-ItemProperty -Path "HKCU:\Control Panel\Mouse" -Name MouseThreshold2 -PropertyType String -Value 0 -Force
-$Xcurve = "00,00,00,00,00,00,00,00,C0,CC,0C,00,00,00,00,00,80,99,19,00,00,00,00,00,40,66,26,00,00,00,00,00,00,33,33,00,00,00,00,00".Split(',') | ForEach-Object { "0x$_"}
-$Ycurve = "00,00,00,00,00,00,00,00,00,00,38,00,00,00,00,00,00,00,70,00,00,00,00,00,00,00,A8,00,00,00,00,00,00,00,E0,00,00,00,00,00".Split(',') | ForEach-Object { "0x$_"}
+$Xcurve = "00,00,00,00,00,00,00,00,C0,CC,0C,00,00,00,00,00,80,99,19,00,00,00,00,00,40,66,26,00,00,00,00,00,00,33,33,00,00,00,00,00".Split(',') | ForEach-Object { "0x$_" }
+$Ycurve = "00,00,00,00,00,00,00,00,00,00,38,00,00,00,00,00,00,00,70,00,00,00,00,00,00,00,A8,00,00,00,00,00,00,00,E0,00,00,00,00,00".Split(',') | ForEach-Object { "0x$_" }
 New-ItemProperty -path "HKCU:\Control Panel\Mouse" -name SmoothMouseXCurve -propertytype Binary -value ([byte[]] $Xcurve) -Force
 New-ItemProperty -path "HKCU:\Control Panel\Mouse" -name SmoothMouseYCurve -propertytype Binary -value ([byte[]] $Ycurve) -Force
 New-ItemProperty -Path "Registry::HKEY_USERS\.DEFAULT\Control Panel\Mouse" -Name MouseSpeed -PropertyType String -Value 0 -Force
@@ -525,13 +527,14 @@ Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://cho
 RefreshEnv.cmd
 choco feature enable -n=allowGlobalConfirmation
 Get-Content ".\install\choco.txt" | ForEach-Object {
-	cinst.exe "$_"
+	cinst.exe --ignoredetectedreboot "$_"
 }
 RefreshEnv.cmd
+Refresh-Environment
 #endregion Chocolatey
 
 #region Python
-$pyversion = ((pyenv install -l).split('\n') | Where-Object { $_ -like "*-amd64"})[0]
+$pyversion = ((pyenv install -l).split('\n') | Where-Object { $_ -like "*-amd64" })[0]
 pyenv install $pyversion
 pyenv global $pyversion
 pyenv rehash
@@ -544,7 +547,7 @@ pyenv rehash
 
 #region Node
 nvm on
-$nodeversion = ((Invoke-WebRequest -Uri https://nodejs.org/dist/index.json | ConvertFrom-Json) | Where-Object { $_.lts  -cne $false})[0].version.substring(1)
+$nodeversion = ((Invoke-WebRequest -Uri https://nodejs.org/dist/index.json | ConvertFrom-Json) | Where-Object { $_.lts -cne $false })[0].version.substring(1)
 nvm install $nodeversion
 nvm use $nodeversion
 Get-Content ".\install\npm.txt" | ForEach-Object {
@@ -572,7 +575,7 @@ Get-Content ".\install\npm.txt" | ForEach-Object {
 
 #region Random stuffs
 
-[System.Environment]::SetEnvironmentVariable("PATH", $Env:Path + ";C:\Program Files\mpv.net", "Machine")
+Append-EnvPath("C:\Program Files\mpv.net")
 git config --global core.editor "code --wait"
 code --install-extension Shan.code-settings-sync
 #endregion Random stuffs
@@ -600,4 +603,6 @@ if (-Not (Test-Path $profileDir)) {
 Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/skywind3000/z.lua/master/z.lua' -Out "$profileDir\z.lua"
 Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/mattparkes/PoShFuck/master/Install-TheFucker.ps1'))
 Copy-Item -Path ./powershell/*.ps1 -Destination $profileDir
+Get-ChildItem $profileDir/powershell/* | Unblock-File -Confirm
+Remove-DuplicateEnvPath
 #endregion Powershell

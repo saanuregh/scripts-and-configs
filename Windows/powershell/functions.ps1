@@ -66,13 +66,27 @@ function Elevate-Process {
     $psi.WorkingDirectory = Get-Location
     [System.Diagnostics.Process]::Start($psi)
 }
-function Update-SessionEnvironmentPYENV {
-    Update-SessionEnvironment
-    pyenv.bat rehash
-}
 function Remove-DuplicateEnvPath {
     [Environment]::SetEnvironmentVariable('Path', (([Environment]::GetEnvironmentVariable('Path', 'Machine') -split
                 ';' | Sort-Object -Unique) -join ';'), 'Machine')
+}
+# Reload the $env object from the registry
+function Refresh-Environment {
+    $locations = 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment', 'HKCU:\Environment'
+    $locations | ForEach-Object {
+        $k = Get-Item $_
+        $k.GetValueNames() | ForEach-Object {
+            $name = $_
+            $value = $k.GetValue($_)
+            Set-Item -Path Env:\$name -Value $value
+        }
+    }
+
+    $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
+}
+function Update-SessionEnvironmentPYENV {
+    Refresh-Environment
+    pyenv.bat rehash
 }
 
 # Set a permanent Environment variable, and reload it into $env
@@ -83,8 +97,8 @@ function Set-Environment([String] $variable, [String] $value) {
     Invoke-Expression "`$env:${variable} = `"$value`""
 }
 # Add a folder to $env:Path
-function Prepend-EnvPath([String]$path) { [System.Environment]::SetEnvironmentVariable("PATH", $path + $Env:Path, "Machine") }
-function Append-EnvPath([String]$path) { [System.Environment]::SetEnvironmentVariable("PATH", $Env:Path + $path, "Machine") }
+function Prepend-EnvPath([String]$path) { [System.Environment]::SetEnvironmentVariable("PATH", $path + ";" + $Env:Path, "Machine") }
+function Append-EnvPath([String]$path) { [System.Environment]::SetEnvironmentVariable("PATH", $Env:Path + ";" + $path, "Machine") }
 
 
 # Utilities
