@@ -48,8 +48,7 @@ New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\
 New-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\Windows Error Reporting" -Name Disabled -PropertyType DWord -Value 1 -Force
 # Change Windows Feedback frequency to "Never"
 # Изменить частоту формирования отзывов на "Никогда"
-IF (-not (Test-Path -Path HKCU:\Software\Microsoft\Siuf\Rules))
-{
+IF (-not (Test-Path -Path HKCU:\Software\Microsoft\Siuf\Rules)) {
 	New-Item -Path HKCU:\Software\Microsoft\Siuf\Rules -Force
 }
 New-ItemProperty -Path HKCU:\Software\Microsoft\Siuf\Rules -Name NumberOfSIUFInPeriod -PropertyType DWord -Value 0 -Force
@@ -91,9 +90,8 @@ New-ItemProperty -Path HKCU:\Software\Microsoft\Windows\CurrentVersion\CDP -Name
 New-ItemProperty -Path HKLM:\Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo -Name Enabled -PropertyType DWord -Value 0 -Force
 # Do not use sign-in info to automatically finish setting up device after an update or restart
 # Не использовать данные для входа для автоматического завершения настройки устройства после перезапуска или обновления
-$sid = (Get-CimInstance -ClassName Win32_UserAccount | Where-Object -FilterScript {$_.Name -eq "$env:USERNAME"}).SID
-IF (-not (Test-Path -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon\UserARSO\$sid"))
-{
+$sid = (Get-CimInstance -ClassName Win32_UserAccount | Where-Object -FilterScript { $_.Name -eq "$env:USERNAME" }).SID
+IF (-not (Test-Path -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon\UserARSO\$sid")) {
 	New-Item -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon\UserARSO\$sid" -Force
 }
 New-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon\UserARSO\$sid" -Name OptOut -PropertyType DWord -Value 1 -Force
@@ -311,12 +309,10 @@ Stop-Process -Name explorer
 Remove-ItemProperty -Path HKCU:\Environment -Name OneDrive -Force -ErrorAction SilentlyContinue
 Remove-Item -Path "$env:ProgramData\Microsoft OneDrive" -Recurse -Force -ErrorAction SilentlyContinue
 Unregister-ScheduledTask -TaskName *OneDrive* -Confirm:$false
-IF ((Get-ChildItem -Path $env:USERPROFILE\OneDrive -ErrorAction SilentlyContinue | Measure-Object).Count -eq 0)
-{
+IF ((Get-ChildItem -Path $env:USERPROFILE\OneDrive -ErrorAction SilentlyContinue | Measure-Object).Count -eq 0) {
 	Remove-Item -Path $env:USERPROFILE\OneDrive -Recurse -Force -ErrorAction SilentlyContinue
 }
-else
-{
+else {
 	Write-Error "$env:USERPROFILE\OneDrive folder is not empty"
 }
 Wait-Process -Name OneDriveSetup -ErrorAction SilentlyContinue
@@ -578,7 +574,8 @@ Until ($drives -eq $drive)
 #region System
 # Let Windows try to fix apps so they're not blurry
 # Разрешить Windows исправлять размытость в приложениях
-New-ItemProperty -Path "HKCU:\Control Panel\Desktop" -Name EnablePerProcessSystemDPI -PropertyType DWord -Value 1 -Force# Turn off location for this device
+New-ItemProperty -Path "HKCU:\Control Panel\Desktop" -Name EnablePerProcessSystemDPI -PropertyType DWord -Value 1 -Force
+# Turn off location for this device
 # Отключить местоположение для этого устройства
 New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\location -Name Value -PropertyType String -Value Deny -Force
 # Turn on Win32 long paths
@@ -587,8 +584,7 @@ New-ItemProperty -Path HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem -Name L
 # Turn off Delivery Optimization
 # Отключить оптимизацию доставки
 Get-Service -Name DoSvc | Stop-Service -Force
-IF (-not (Test-Path -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization))
-{
+IF (-not (Test-Path -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization)) {
 	New-Item -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization -Force
 }
 New-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization -Name DODownloadMode -PropertyType DWord -Value 0 -Force
@@ -632,7 +628,7 @@ $IncludedApps = @(
 	"Media.WindowsMediaPlayer*"
 )
 $OFS = "|"
-Get-WindowsCapability -Online | Where-Object -FilterScript {$_.Name -cmatch $IncludedApps} | Remove-WindowsCapability -Online
+Get-WindowsCapability -Online | Where-Object -FilterScript { $_.Name -cmatch $IncludedApps } | Remove-WindowsCapability -Online
 $OFS = " "
 # Turn off default background apps, except the followings...
 # Запретить стандартным приложениям работать в фоновом режиме, кроме следующих...
@@ -652,7 +648,7 @@ $ExcludedApps = @(
 	"Microsoft.Windows.StartMenuExperienceHost*"
 )
 $OFS = "|"
-Get-ChildItem -Path HKCU:\Software\Microsoft\Windows\CurrentVersion\BackgroundAccessApplications | Where-Object -FilterScript {$_.PSChildName -cnotmatch $ExcludedApps} |
+Get-ChildItem -Path HKCU:\Software\Microsoft\Windows\CurrentVersion\BackgroundAccessApplications | Where-Object -FilterScript { $_.PSChildName -cnotmatch $ExcludedApps } |
 ForEach-Object -Process {
 	New-ItemProperty -Path $_.PsPath -Name Disabled -PropertyType DWord -Value 1 -Force
 	New-ItemProperty -Path $_.PsPath -Name DisabledByUser -PropertyType DWord -Value 1 -Force
@@ -660,8 +656,7 @@ ForEach-Object -Process {
 $OFS = " "
 # Set power management scheme for desktop and laptop
 # Установить схему управления питания для стационарного ПК и ноутбука
-IF ((Get-CimInstance -ClassName Win32_ComputerSystem).PCSystemType -eq 1)
-{
+IF ((Get-CimInstance -ClassName Win32_ComputerSystem).PCSystemType -eq 1) {
 	# High performance for desktop
 	# Высокая производительность для стационарного ПК
 	powercfg /setactive SCHEME_MIN
@@ -670,8 +665,7 @@ IF ((Get-CimInstance -ClassName Win32_ComputerSystem).PCSystemType -eq 1)
 	$adapter.AllowComputerToTurnOffDevice = "Disabled"
 	$adapter | Set-NetAdapterPowerManagement
 }
-IF ((Get-CimInstance -ClassName Win32_ComputerSystem).PCSystemType -eq 2)
-{
+IF ((Get-CimInstance -ClassName Win32_ComputerSystem).PCSystemType -eq 2) {
 	# Balanced for laptop
 	# Сбалансированная для ноутбука
 	powercfg /setactive SCHEME_BALANCED
@@ -760,91 +754,16 @@ New-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\Explorer -Name 
 
 #region UWP apps
 # Uninstall all UWP apps from all accounts, except the followings...
-# Удалить все UWP-приложения из всех учетных записей, кроме следующих...
-$ExcludedApps = @(
-	# iTunes
-	#"AppleInc.iTunes"
-	# Intel UWP-panel
-	# UWP-панель Intel
-	"AppUp.IntelGraphicsControlPanel"
-	"AppUp.IntelGraphicsExperience"
-	# Microsoft Desktop App Installer
-	"Microsoft.DesktopAppInstaller"
-	# Sticky Notes
-	# Записки
-	"Microsoft.MicrosoftStickyNotes"
-	# Screen Sketch
-	# Набросок на фрагменте экрана
-	"Microsoft.ScreenSketch"
-	# Microsoft Store
-	"Microsoft.StorePurchaseApp"
-	"Microsoft.WindowsStore"
-	# Web Media Extensions
-	# Расширения для интернет-мультимедиа
-	"Microsoft.WebMediaExtensions"
-	# Photos and Video Editor
-	# Фотографии и Видеоредактор
-	"Microsoft.Windows.Photos"
-	# Calculator
-	# Калькулятор
-	"Microsoft.WindowsCalculator"
-	"Microsoft.WindowsCamera"
-)
-$OFS = "|"
-Get-AppxPackage -PackageTypeFilter Bundle -AllUsers | Where-Object {$_.Name -cnotmatch $ExcludedApps} | Remove-AppxPackage -AllUsers
-$OFS = " "
-# Uninstall all provisioned UWP apps from System account, except the followings...
-# App packages will not be installed when new user accounts are created
-# Удалить все UWP-приложения из системной учетной записи, кроме следующих...
-# Приложения не будут установлены при создании новых учетных записей
-$ExcludedApps = @(
-	# Intel UWP-panel
-	# UWP-панель Intel
-	"AppUp.IntelGraphicsControlPanel"
-	"AppUp.IntelGraphicsExperience"
-	# Microsoft Desktop App Installer
-	"Microsoft.DesktopAppInstaller"
-	# HEIF Image Extensions
-	# Расширения для изображений HEIF
-	"Microsoft.HEIFImageExtension"
-	# Sticky Notes
-	# Записки
-	"Microsoft.MicrosoftStickyNotes"
-	# Screen Sketch
-	# Набросок на фрагменте экрана
-	"Microsoft.ScreenSketch"
-	# Microsoft Store
-	"Microsoft.StorePurchaseApp"
-	"Microsoft.WindowsStore"
-	# VP9 Video Extensions
-	# Расширения для VP9-видео
-	"Microsoft.VP9VideoExtensions"
-	# Web Media Extensions
-	# Расширения для интернет-мультимедиа
-	"Microsoft.WebMediaExtensions"
-	# WebP Image Extension
-	# Расширения для изображений WebP
-	"Microsoft.WebpImageExtension"
-	# Photos and Video Editor
-	# Фотографии и Видеоредактор
-	"Microsoft.Windows.Photos"
-	# Calculator
-	# Калькулятор
-	"Microsoft.WindowsCalculator"
-	# NVIDIA Control Panel
-	# Панель управления NVidia
-	"NVIDIACorp.NVIDIAControlPanel"
-)
-$OFS = "|"
-Get-AppxProvisionedPackage -Online | Where-Object -FilterScript {$_.DisplayName -cnotmatch $ExcludedApps} | Remove-AppxProvisionedPackage -Online
-$OFS = " "
+[regex]$ExcludedApps = "AppUp.IntelGraphicsControlPanel|AppUp.IntelGraphicsExperience|Microsoft.DesktopAppInstaller|Microsoft.MicrosoftStickyNotes|Microsoft.ScreenSketch|Microsoft.StorePurchaseApp|Microsoft.WindowsStore|Microsoft.WebMediaExtensions|Microsoft.Windows.Photos|Microsoft.WindowsCalculator|Microsoft.WindowsCamera|Microsoft.HEIFImageExtension|Microsoft.VP9VideoExtensions|Microsoft.WebpImageExtension"
+Get-AppxPackage -PackageTypeFilter Bundle -AllUsers | Where-Object { $_.Name -NotMatch $ExcludedApps } | Remove-AppxPackage -AllUsers -ErrorAction SilentlyContinue
+Get-AppxPackage -PackageTypeFilter Bundle -AllUsers | Where-Object { $_.Name -NotMatch $ExcludedApps } | Remove-AppxPackage -AllUsers -ErrorAction SilentlyContinue
+Get-AppxProvisionedPackage -Online | Where-Object { $_.DisplayName -NotMatch $ExcludedApps } | Remove-AppxProvisionedPackage -Online
 #endregion UWP apps
 
 #region Windows Game Recording
 # Turn off Windows Game Recording and Broadcasting
 # Отключить Запись и трансляции игр Windows
-IF (-not (Test-Path -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\GameDVR))
-{
+IF (-not (Test-Path -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\GameDVR)) {
 	New-Item -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\GameDVR -Force
 }
 New-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\GameDVR -Name AllowgameDVR -PropertyType DWord -Value 0 -Force
@@ -887,8 +806,7 @@ $keys = @(
 	# Windows upgrade log files
 	# Файлы журнала обновления Windows
 	"Windows Upgrade Log Files")
-foreach ($key in $keys)
-{
+foreach ($key in $keys) {
 	New-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VolumeCaches\$key" -Name StateFlags1337 -PropertyType DWord -Value 2 -Force
 }
 $action = New-ScheduledTaskAction -Execute "cleanmgr.exe" -Argument "/sagerun:1337"
@@ -896,10 +814,10 @@ $trigger = New-ScheduledTaskTrigger -Daily -DaysInterval 90 -At 9am
 $settings = New-ScheduledTaskSettingsSet -Compatibility Win8 -StartWhenAvailable
 $principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -RunLevel Highest
 $params = @{
-	"TaskName"	=	"Update Cleanup"
-	"Action"	=	$action
-	"Trigger"	=	$trigger
-	"Settings"	=	$settings
+	"TaskName"  =	"Update Cleanup"
+	"Action"    =	$action
+	"Trigger"   =	$trigger
+	"Settings"  =	$settings
 	"Principal"	=	$principal
 }
 Register-ScheduledTask @params -Force
@@ -916,10 +834,10 @@ $trigger = New-JobTrigger -Weekly -WeeksInterval 4 -DaysOfWeek Thursday -At 9am
 $settings = New-ScheduledTaskSettingsSet -Compatibility Win8 -StartWhenAvailable
 $principal = New-ScheduledTaskPrincipal -UserId "NT AUTHORITY\SYSTEM" -RunLevel Highest
 $params = @{
-	"TaskName"	=	"SoftwareDistribution"
-	"Action"	=	$action
-	"Trigger"	=	$trigger
-	"Settings"	=	$settings
+	"TaskName"  =	"SoftwareDistribution"
+	"Action"    =	$action
+	"Trigger"   =	$trigger
+	"Settings"  =	$settings
 	"Principal"	=	$principal
 }
 Register-ScheduledTask @params -Force
@@ -934,10 +852,10 @@ $trigger = New-ScheduledTaskTrigger -Daily -DaysInterval 62 -At 9am
 $settings = New-ScheduledTaskSettingsSet -Compatibility Win8 -StartWhenAvailable
 $principal = New-ScheduledTaskPrincipal -UserId "NT AUTHORITY\SYSTEM" -RunLevel Highest
 $params = @{
-	"TaskName"	=	"Temp"
-	"Action"	=	$action
-	"Trigger"	=	$trigger
-	"Settings"	=	$settings
+	"TaskName"  =	"Temp"
+	"Action"    =	$action
+	"Trigger"   =	$trigger
+	"Settings"  =	$settings
 	"Principal"	=	$principal
 }
 Register-ScheduledTask @params -Force
