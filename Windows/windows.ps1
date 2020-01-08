@@ -899,7 +899,7 @@ nvm on
 $nodeversion = ((Invoke-WebRequest -Uri https://nodejs.org/dist/index.json -UseBasicParsing | ConvertFrom-Json) | Where-Object { $_.lts -cne $false })[0].version.substring(1)
 nvm install $nodeversion
 nvm use $nodeversion
-npm-v
+npm -v
 Get-Content ".\install\npm.txt" | ForEach-Object {
 	npm install -g "$_"
 }
