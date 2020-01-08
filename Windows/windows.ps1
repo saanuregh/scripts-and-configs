@@ -887,7 +887,7 @@ $pyversion = ((pyenv install -l).split('\n') | Where-Object { $_ -like "*-amd64"
 pyenv install $pyversion
 pyenv global $pyversion
 pyenv rehash
-Invoke-WebRequest -Uri "https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py" -OutFile temp\get-poetry.py; python ".\temp\get-poetry.py"
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py" -UseBasicParsing -OutFile temp\get-poetry.py; python ".\temp\get-poetry.py"
 Get-Content ".\install\pip.txt" | ForEach-Object {
 	pip install "$_"
 }
