@@ -3,18 +3,128 @@ If (!Test-Administrator) {
 	Write-Host "Run as administrator!!!"; Pause; Exit
 }
 
-Set-ExecutionPolicy Unrestricted -Force
 mkdir "temp" -Force
 
-
-#debloat
-Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://git.io/debloat'))
+$input = Read-Host “Enter Computer Name: ”
+Rename-Computer -NewName $input -Force
 
 #https://github.com/farag2/Windows-10-Setup-Script
+#region Privacy & Telemetry
+# Turn off "Connected User Experiences and Telemetry" service
+# Отключить службу "Функциональные возможности для подключенных пользователей и телеметрия"
+Get-Service -Name DiagTrack | Stop-Service -Force
+Get-Service -Name DiagTrack | Set-Service -StartupType Disabled
+# Turn off per-user services
+# Отключить пользовательские службы
+$services = @(
+	# Contact Data
+	# Служба контактных данных
+	"PimIndexMaintenanceSvc_*",
+	# User Data Storage
+	# Служба хранения данных пользователя
+	"UnistoreSvc_*",
+	# User Data Access
+	# Служба доступа к данным пользователя
+	"UserDataSvc_*"
+)
+Get-Service -Name $services | Stop-Service -Force
+New-ItemProperty -Path HKLM:\System\CurrentControlSet\Services\PimIndexMaintenanceSvc -Name Start -PropertyType DWord -Value 4 -Force
+New-ItemProperty -Path HKLM:\System\CurrentControlSet\Services\PimIndexMaintenanceSvc -Name UserServiceFlags -PropertyType DWord -Value 0 -Force
+New-ItemProperty -Path HKLM:\System\CurrentControlSet\Services\UnistoreSvc -Name Start -PropertyType DWord -Value 4 -Force
+New-ItemProperty -Path HKLM:\System\CurrentControlSet\Services\UnistoreSvc -Name UserServiceFlags -PropertyType DWord -Value 0 -Force
+New-ItemProperty -Path HKLM:\System\CurrentControlSet\Services\UserDataSvc -Name Start -PropertyType DWord -Value 4 -Force
+New-ItemProperty -Path HKLM:\System\CurrentControlSet\Services\UserDataSvc -Name UserServiceFlags -PropertyType DWord -Value 0 -Force
+# Turn off the Autologger session at the next computer restart
+# Отключить сборщик AutoLogger при следующем запуске ПК
+Update-AutologgerConfig -Name AutoLogger-Diagtrack-Listener -Start 0
+# Turn off the SQMLogger session at the next computer restart
+# Отключить сборщик SQMLogger при следующем запуске ПК
+Update-AutologgerConfig -Name SQMLogger -Start 0
+# Set the operating system diagnostic data level to "Basic"
+# Установить уровень отправляемых диагностических сведений на "Базовый"
+New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection -Name AllowTelemetry -PropertyType DWord -Value 1 -Force
+# Turn off Windows Error Reporting
+# Отключить отчеты об ошибках Windows
+New-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\Windows Error Reporting" -Name Disabled -PropertyType DWord -Value 1 -Force
+# Change Windows Feedback frequency to "Never"
+# Изменить частоту формирования отзывов на "Никогда"
+IF (-not (Test-Path -Path HKCU:\Software\Microsoft\Siuf\Rules))
+{
+	New-Item -Path HKCU:\Software\Microsoft\Siuf\Rules -Force
+}
+New-ItemProperty -Path HKCU:\Software\Microsoft\Siuf\Rules -Name NumberOfSIUFInPeriod -PropertyType DWord -Value 0 -Force
+# Turn off diagnostics tracking scheduled tasks
+# Отключить задачи диагностического отслеживания
+$tasks = @(
+	"ProgramDataUpdater"
+	"Microsoft Compatibility Appraiser"
+	"Microsoft-Windows-DiskDiagnosticDataCollector"
+	"TempSignedLicenseExchange"
+	"MapsToastTask"
+	"DmClient"
+	"FODCleanupTask"
+	"DmClientOnScenarioDownload"
+	"BgTaskRegistrationMaintenanceTask"
+	"File History (maintenance mode)"
+	"WinSAT"
+	"UsbCeip"
+	"Consolidator"
+	"Proxy"
+	"MNO Metadata Parser"
+	"NetworkStateChangeTask"
+	"GatherNetworkInfo"
+	"XblGameSaveTask"
+	"EnableLicenseAcquisition"
+	"QueueReporting"
+	"FamilySafetyMonitor"
+	"FamilySafetyRefreshTask"
+)
+Get-ScheduledTask -TaskName $tasks | Disable-ScheduledTask
+# Do not offer tailored experiences based on the diagnostic data setting
+# Не предлагать персонализированныее возможности, основанные на выбранном параметре диагностических данных
+New-ItemProperty -Path HKCU:\Software\Microsoft\Windows\CurrentVersion\Privacy -Name TailoredExperiencesWithDiagnosticDataEnabled -PropertyType DWord -Value 0 -Force
+# Do not let apps on other devices open and message apps on this device, and vice versa
+# Не разрешать приложениям на других устройствах запускать приложения и отправлять сообщения на этом устройстве и наоборот
+New-ItemProperty -Path HKCU:\Software\Microsoft\Windows\CurrentVersion\CDP -Name RomeSdkChannelUserAuthzPolicy -PropertyType DWord -Value 0 -Force
+# Do not allow apps to use advertising ID
+# Не разрешать приложениям использовать идентификатор рекламы
+New-ItemProperty -Path HKLM:\Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo -Name Enabled -PropertyType DWord -Value 0 -Force
+# Do not use sign-in info to automatically finish setting up device after an update or restart
+# Не использовать данные для входа для автоматического завершения настройки устройства после перезапуска или обновления
+$sid = (Get-CimInstance -ClassName Win32_UserAccount | Where-Object -FilterScript {$_.Name -eq "$env:USERNAME"}).SID
+IF (-not (Test-Path -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon\UserARSO\$sid"))
+{
+	New-Item -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon\UserARSO\$sid" -Force
+}
+New-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon\UserARSO\$sid" -Name OptOut -PropertyType DWord -Value 1 -Force
+# Do not let websites provide locally relevant content by accessing language list
+# Не позволять веб-сайтам предоставлять местную информацию за счет доступа к списку языков
+New-ItemProperty -Path "HKCU:\Control Panel\International\User Profile" -Name HttpAcceptLanguageOptOut -PropertyType DWord -Value 1 -Force
+# Turn on tip, trick, and suggestions as you use Windows
+# Показывать советы, подсказки и рекомендации при использованию Windows
+New-ItemProperty -Path HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager -Name SubscribedContent-338389Enabled -PropertyType DWord -Value 1 -Force
+# Do not show app suggestions on Start menu
+# Не показывать рекомендации в меню "Пуск"
+New-ItemProperty -Path HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager -Name SubscribedContent-338388Enabled -PropertyType DWord -Value 0 -Force
+# Do not show suggested content in the Settings
+# Не показывать рекомендуемое содержание в "Параметрах"
+New-ItemProperty -Path HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager -Name SubscribedContent-338393Enabled -PropertyType DWord -Value 0 -Force
+New-ItemProperty -Path HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager -Name SubscribedContent-353694Enabled -PropertyType DWord -Value 0 -Force
+New-ItemProperty -Path HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager -Name SubscribedContent-353696Enabled -PropertyType DWord -Value 0 -Force
+# Turn off automatic installing suggested apps
+# Отключить автоматическую установку рекомендованных приложений
+New-ItemProperty -Path HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager -Name SilentInstalledAppsEnabled -PropertyType DWord -Value 0 -Force
+# Do not let track app launches to improve Start menu and search results
+# Не разрешать Windows отслеживать запуски приложений для улучшения меню "Пуск" и результатов поиска и не показывать недавно добавленные приложения
+New-ItemProperty -Path HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced -Name Start_TrackProgs -PropertyType DWord -Value 0 -Force
+#endregion Privacy & Telemetry
+
 #region UI & Personalization
 # Show "This PC" on Desktop
 # Отобразить "Этот компьютер" на рабочем столе
 # New-ItemProperty -Path HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\NewStartPanel -Name "{20D04FE0-3AEA-1069-A2D8-08002B30309D}" -PropertyType DWord -Value 0 -Force
+# Remove "Recycle Bin" on Desktop
+New-ItemProperty -Path HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\NewStartPanel -Name "{645FF040-5081-101B-9F08-00AA002F954E}" -PropertyType DWord -Value 1 -Force
 # Set File Explorer to open to This PC by default
 # Открывать "Этот компьютер" в Проводнике
 New-ItemProperty -Path HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced -Name LaunchTo -PropertyType DWord -Value 1 -Force
@@ -96,7 +206,7 @@ New-ItemProperty -Path HKCU:\Software\Microsoft\Windows\CurrentVersion\Search -N
 New-ItemProperty -Path HKCU:\Software\Microsoft\Windows\CurrentVersion\PenWorkspace -Name PenWorkspaceButtonDesiredVisibility -PropertyType DWord -Value 0 -Force
 # Always show all icons in the notification area
 # Всегда отображать все значки в области уведомлений
-New-ItemProperty -Path HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer -Name EnableAutoTray -PropertyType DWord -Value 0 -Force
+# New-ItemProperty -Path HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer -Name EnableAutoTray -PropertyType DWord -Value 0 -Force
 # Unpin Microsoft Edge and Microsoft Store from taskbar
 # Открепить Microsoft Edge и Microsoft Store от панели задач
 $Signature = @{
@@ -133,7 +243,7 @@ New-ItemProperty -Path HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\
 New-ItemProperty -Path HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\ControlPanel -Name StartupPage -PropertyType DWord -Value 1 -Force
 # Turn on the display of color on Start menu, taskbar, and action center
 # Отображать цвет элементов в меню "Пуск", на панели задач и в центре уведомлений
-New-ItemProperty -Path HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize -Name ColorPrevalence -PropertyType DWord -Value 1 -Force
+# New-ItemProperty -Path HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize -Name ColorPrevalence -PropertyType DWord -Value 1 -Force
 # Dark Theme Color for Default Windows Mode
 # Режим Windows по умолчанию темный
 New-ItemProperty -Path HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize -Name SystemUsesLightTheme -PropertyType DWord -Value 0 -Force
@@ -191,6 +301,28 @@ New-ItemProperty -Path HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer 
 # Автоматически изменять период активности для этого устройства на основе действий
 # New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings -Name SmartActiveHoursState -PropertyType DWord -Value 1 -Force
 #endregion UI & Personalization
+
+#region OneDrive
+# Uninstall OneDrive
+# Удалить OneDrive
+Stop-Process -Name OneDrive -Force -ErrorAction SilentlyContinue
+Start-Process -FilePath "$env:SystemRoot\SysWOW64\OneDriveSetup.exe" -ArgumentList "/uninstall" -Wait
+Stop-Process -Name explorer
+Remove-ItemProperty -Path HKCU:\Environment -Name OneDrive -Force -ErrorAction SilentlyContinue
+Remove-Item -Path "$env:ProgramData\Microsoft OneDrive" -Recurse -Force -ErrorAction SilentlyContinue
+Unregister-ScheduledTask -TaskName *OneDrive* -Confirm:$false
+IF ((Get-ChildItem -Path $env:USERPROFILE\OneDrive -ErrorAction SilentlyContinue | Measure-Object).Count -eq 0)
+{
+	Remove-Item -Path $env:USERPROFILE\OneDrive -Recurse -Force -ErrorAction SilentlyContinue
+}
+else
+{
+	Write-Error "$env:USERPROFILE\OneDrive folder is not empty"
+}
+Wait-Process -Name OneDriveSetup -ErrorAction SilentlyContinue
+Remove-Item -Path $env:LOCALAPPDATA\Microsoft\OneDrive -Recurse -Force -ErrorAction SilentlyContinue
+$Error.RemoveAt(0)
+#endregion OneDrive
 
 #region Set folder
 # Set location of the "Desktop", "Documents", "Downloads", "Music", "Pictures", and "Videos"
@@ -444,6 +576,115 @@ Until ($drives -eq $drive)
 #endregion Set folder
 
 #region System
+# Let Windows try to fix apps so they're not blurry
+# Разрешить Windows исправлять размытость в приложениях
+New-ItemProperty -Path "HKCU:\Control Panel\Desktop" -Name EnablePerProcessSystemDPI -PropertyType DWord -Value 1 -Force# Turn off location for this device
+# Отключить местоположение для этого устройства
+New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\location -Name Value -PropertyType String -Value Deny -Force
+# Turn on Win32 long paths
+# Включить длинные пути Win32
+New-ItemProperty -Path HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem -Name LongPathsEnabled -PropertyType DWord -Value 1 -Force
+# Turn off Delivery Optimization
+# Отключить оптимизацию доставки
+Get-Service -Name DoSvc | Stop-Service -Force
+IF (-not (Test-Path -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization))
+{
+	New-Item -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization -Force
+}
+New-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization -Name DODownloadMode -PropertyType DWord -Value 0 -Force
+# Turn off Windows features
+# Отключить компоненты
+$features = @(
+	# Windows Fax and Scan
+	# Факсы и сканирование
+	"FaxServicesClientPackage"
+	# Legacy Components
+	# Компоненты прежних версий
+	#"LegacyComponents"
+	# Media Features
+	# Компоненты работы с мультимедиа
+	"MediaPlayback"
+	# PowerShell 2.0
+	#"MicrosoftWindowsPowerShellV2"
+	#"MicrosoftWindowsPowershellV2Root"
+	# Microsoft XPS Document Writer
+	# Средство записи XPS-документов (Microsoft)
+	"Printing-XPSServices-Features"
+	# Microsoft Print to PDF
+	# Печать в PDF (Майкрософт)
+	#"Printing-PrintToPDFServices-Features"
+	# Work Folders Client
+	# Клиент рабочих папок
+	"WorkFolders-Client"
+)
+Disable-WindowsOptionalFeature -Online -FeatureName $features -NoRestart
+# Remove Windows capabilities
+# Удалить компоненты
+$IncludedApps = @(
+	# Microsoft Quick Assist
+	# Быстрая поддержка (Майкрософт)
+	"App.Support.QuickAssist*"
+	# Windows Hello Face
+	# Распознавание лиц Windows Hello
+	#"Hello.Face*"
+	# Windows Media Player
+	# Проигрыватель Windows Media
+	"Media.WindowsMediaPlayer*"
+)
+$OFS = "|"
+Get-WindowsCapability -Online | Where-Object -FilterScript {$_.Name -cmatch $IncludedApps} | Remove-WindowsCapability -Online
+$OFS = " "
+# Turn off default background apps, except the followings...
+# Запретить стандартным приложениям работать в фоновом режиме, кроме следующих...
+$ExcludedApps = @(
+	# Lock App
+	"Microsoft.LockApp*"
+	# Content Delivery Manager
+	"Microsoft.Windows.ContentDeliveryManager*"
+	# Cortana
+	"Microsoft.Windows.Cortana*"
+	# Windows Security
+	# Безопасность Windows
+	"Microsoft.Windows.SecHealthUI*"
+	# ShellExperienceHost
+	"Microsoft.Windows.ShellExperienceHost*"
+	# StartMenuExperienceHost
+	"Microsoft.Windows.StartMenuExperienceHost*"
+)
+$OFS = "|"
+Get-ChildItem -Path HKCU:\Software\Microsoft\Windows\CurrentVersion\BackgroundAccessApplications | Where-Object -FilterScript {$_.PSChildName -cnotmatch $ExcludedApps} |
+ForEach-Object -Process {
+	New-ItemProperty -Path $_.PsPath -Name Disabled -PropertyType DWord -Value 1 -Force
+	New-ItemProperty -Path $_.PsPath -Name DisabledByUser -PropertyType DWord -Value 1 -Force
+}
+$OFS = " "
+# Set power management scheme for desktop and laptop
+# Установить схему управления питания для стационарного ПК и ноутбука
+IF ((Get-CimInstance -ClassName Win32_ComputerSystem).PCSystemType -eq 1)
+{
+	# High performance for desktop
+	# Высокая производительность для стационарного ПК
+	powercfg /setactive SCHEME_MIN
+	# Do not allow the computer to turn off the Ethernet adapter to save power
+	$adapter = Get-NetAdapter -Physical | Get-NetAdapterPowerManagement
+	$adapter.AllowComputerToTurnOffDevice = "Disabled"
+	$adapter | Set-NetAdapterPowerManagement
+}
+IF ((Get-CimInstance -ClassName Win32_ComputerSystem).PCSystemType -eq 2)
+{
+	# Balanced for laptop
+	# Сбалансированная для ноутбука
+	powercfg /setactive SCHEME_BALANCED
+	# Disable fast startup 
+	New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Power" -Name HiberbootEnabled -PropertyType DWord -Value 0 -Force
+}
+# Turn on latest installed .NET runtime for all apps
+# Использовать последнюю установленную версию .NET для всех приложений
+New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\.NETFramework -Name OnlyUseLatestCLR -PropertyType DWord -Value 1 -Force
+New-ItemProperty -Path HKLM:\SOFTWARE\Wow6432Node\Microsoft\.NETFramework -Name OnlyUseLatestCLR -PropertyType DWord -Value 1 -Force
+# Turn on updates for other Microsoft products
+# Включить автоматическое обновление для других продуктов Microsoft
+(New-Object -ComObject Microsoft.Update.ServiceManager).AddService2("7971f918-a847-4430-9279-4a52d1efe18d", 7, "")
 # Disable mouse acceleration
 New-ItemProperty -Path "HKCU:\Control Panel\Mouse" -Name MouseSensitivity -PropertyType String -Value 10 -Force
 New-ItemProperty -Path "HKCU:\Control Panel\Mouse" -Name MouseSpeed -PropertyType String -Value 0 -Force
@@ -458,13 +699,15 @@ New-ItemProperty -Path "Registry::HKEY_USERS\.DEFAULT\Control Panel\Mouse" -Name
 New-ItemProperty -Path "Registry::HKEY_USERS\.DEFAULT\Control Panel\Mouse" -Name MouseThreshold2 -PropertyType String -Value 0 -Force
 # Turn on OpenSSH
 Add-WindowsCapability -Online -Name OpenSSH.Client~~~~0.0.1.0
-# Turn off Delivery Optimization
-# Отключить оптимизацию доставки
-Get-Service -Name DoSvc | Stop-Service -Force
-IF (-not (Test-Path -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization)) {
-	New-Item -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization -Force
-}
-New-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization -Name DODownloadMode -PropertyType DWord -Value 0 -Force
+# Turn on automatic backup the system registry to the $env:SystemRoot\System32\config\RegBack folder
+# Включить автоматическое создание копии реестра в папку $env:SystemRoot\System32\config\RegBack
+New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Configuration Manager" -Name EnablePeriodicBackup -PropertyType DWord -Value 1 -Force
+# Turn off "The Windows Filtering Platform has blocked a connection" message in "Windows Logs/Security"
+# Отключить в "Журналах Windows/Безопасность" сообщение "Платформа фильтрации IP-пакетов Windows разрешила подключение"
+auditpol /set /subcategory:"{0CCE9226-69AE-11D9-BED3-505054503030}" /success:disable /failure:enable
+# Turn off SmartScreen for apps and files
+# Отключить SmartScreen для приложений и файлов
+New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer -Name SmartScreenEnabled -PropertyType String -Value Off -Force
 # Turn off F1 Help key
 # Отключить справку по нажатию F1
 IF (-not (Test-Path -Path "HKCU:\Software\Classes\Typelib\{8cec5860-07a1-11d9-b15e-000d56bfe6ee}\1.0\0\win64")) {
@@ -474,6 +717,9 @@ New-ItemProperty -Path "HKCU:\Software\Classes\Typelib\{8cec5860-07a1-11d9-b15e-
 # Turn off sticky Shift key after pressing 5 times
 # Отключить залипание клавиши Shift после 5 нажатий
 New-ItemProperty -Path "HKCU:\Control Panel\Accessibility\StickyKeys" -Name Flags -PropertyType String -Value 506 -Force
+# Turn off AutoPlay for all media and devices
+# Отключить автозапуск с внешних носителей
+New-ItemProperty -Path HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers -Name DisableAutoplay -PropertyType DWord -Value 1 -Force
 #endregion System
 
 #region Context menu
@@ -512,6 +758,191 @@ New-ItemProperty -Path Registry::HKEY_CLASSES_ROOT\AppX43hnxtbyyps62jhe9sqpdzxn1
 New-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\Explorer -Name NoUseStoreOpenWith -PropertyType DWord -Value 1 -Force
 #endregion Context menu
 
+#region UWP apps
+# Uninstall all UWP apps from all accounts, except the followings...
+# Удалить все UWP-приложения из всех учетных записей, кроме следующих...
+$ExcludedApps = @(
+	# iTunes
+	#"AppleInc.iTunes"
+	# Intel UWP-panel
+	# UWP-панель Intel
+	"AppUp.IntelGraphicsControlPanel"
+	"AppUp.IntelGraphicsExperience"
+	# Microsoft Desktop App Installer
+	"Microsoft.DesktopAppInstaller"
+	# Sticky Notes
+	# Записки
+	"Microsoft.MicrosoftStickyNotes"
+	# Screen Sketch
+	# Набросок на фрагменте экрана
+	"Microsoft.ScreenSketch"
+	# Microsoft Store
+	"Microsoft.StorePurchaseApp"
+	"Microsoft.WindowsStore"
+	# Web Media Extensions
+	# Расширения для интернет-мультимедиа
+	"Microsoft.WebMediaExtensions"
+	# Photos and Video Editor
+	# Фотографии и Видеоредактор
+	"Microsoft.Windows.Photos"
+	# Calculator
+	# Калькулятор
+	"Microsoft.WindowsCalculator"
+	"Microsoft.WindowsCamera"
+)
+$OFS = "|"
+Get-AppxPackage -PackageTypeFilter Bundle -AllUsers | Where-Object {$_.Name -cnotmatch $ExcludedApps} | Remove-AppxPackage -AllUsers
+$OFS = " "
+# Uninstall all provisioned UWP apps from System account, except the followings...
+# App packages will not be installed when new user accounts are created
+# Удалить все UWP-приложения из системной учетной записи, кроме следующих...
+# Приложения не будут установлены при создании новых учетных записей
+$ExcludedApps = @(
+	# Intel UWP-panel
+	# UWP-панель Intel
+	"AppUp.IntelGraphicsControlPanel"
+	"AppUp.IntelGraphicsExperience"
+	# Microsoft Desktop App Installer
+	"Microsoft.DesktopAppInstaller"
+	# HEIF Image Extensions
+	# Расширения для изображений HEIF
+	"Microsoft.HEIFImageExtension"
+	# Sticky Notes
+	# Записки
+	"Microsoft.MicrosoftStickyNotes"
+	# Screen Sketch
+	# Набросок на фрагменте экрана
+	"Microsoft.ScreenSketch"
+	# Microsoft Store
+	"Microsoft.StorePurchaseApp"
+	"Microsoft.WindowsStore"
+	# VP9 Video Extensions
+	# Расширения для VP9-видео
+	"Microsoft.VP9VideoExtensions"
+	# Web Media Extensions
+	# Расширения для интернет-мультимедиа
+	"Microsoft.WebMediaExtensions"
+	# WebP Image Extension
+	# Расширения для изображений WebP
+	"Microsoft.WebpImageExtension"
+	# Photos and Video Editor
+	# Фотографии и Видеоредактор
+	"Microsoft.Windows.Photos"
+	# Calculator
+	# Калькулятор
+	"Microsoft.WindowsCalculator"
+	# NVIDIA Control Panel
+	# Панель управления NVidia
+	"NVIDIACorp.NVIDIAControlPanel"
+)
+$OFS = "|"
+Get-AppxProvisionedPackage -Online | Where-Object -FilterScript {$_.DisplayName -cnotmatch $ExcludedApps} | Remove-AppxProvisionedPackage -Online
+$OFS = " "
+#endregion UWP apps
+
+#region Windows Game Recording
+# Turn off Windows Game Recording and Broadcasting
+# Отключить Запись и трансляции игр Windows
+IF (-not (Test-Path -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\GameDVR))
+{
+	New-Item -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\GameDVR -Force
+}
+New-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\Windows\GameDVR -Name AllowgameDVR -PropertyType DWord -Value 0 -Force
+# Turn off Game Bar
+# Отключить игровую панель
+New-ItemProperty -Path HKCU:\Software\Microsoft\Windows\CurrentVersion\GameDVR -Name AppCaptureEnabled -PropertyType DWord -Value 0 -Force
+New-ItemProperty -Path HKCU:\System\GameConfigStore -Name GameDVR_Enabled -PropertyType DWord -Value 0 -Force
+# Turn off Game Mode
+# Отключить игровой режим
+New-ItemProperty -Path HKCU:\Software\Microsoft\GameBar -Name AllowAutoGameMode -PropertyType DWord -Value 0 -Force
+# Turn off Game Bar tips
+# Отключить подсказки игровой панели
+New-ItemProperty -Path HKCU:\Software\Microsoft\GameBar -Name ShowStartupPanel -PropertyType DWord -Value 0 -Force
+#endregion Windows Game Recording
+
+#region Scheduled tasks
+# Create a task in the Task Scheduler to start Windows cleaning up
+# The task runs every 90 days
+# Создать задачу в Планировщике задач по очистке обновлений Windows
+# Задача выполняется каждые 90 дней
+$keys = @(
+	# Delivery Optimization Files
+	# Файлы оптимизации доставки
+	"Delivery Optimization Files",
+	# Device driver packages
+	# Пакеты драйверов устройств
+	"Device Driver Packages",
+	# Previous Windows Installation(s)
+	# Предыдущие установки Windows
+	"Previous Installations",
+	# Файлы журнала установки
+	"Setup Log Files",
+	# Temporary Setup Files
+	"Temporary Setup Files",
+	# Windows Update Cleanup
+	# Очистка обновлений Windows
+	"Update Cleanup",
+	# Windows Defender Antivirus
+	"Windows Defender",
+	# Windows upgrade log files
+	# Файлы журнала обновления Windows
+	"Windows Upgrade Log Files")
+foreach ($key in $keys)
+{
+	New-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VolumeCaches\$key" -Name StateFlags1337 -PropertyType DWord -Value 2 -Force
+}
+$action = New-ScheduledTaskAction -Execute "cleanmgr.exe" -Argument "/sagerun:1337"
+$trigger = New-ScheduledTaskTrigger -Daily -DaysInterval 90 -At 9am
+$settings = New-ScheduledTaskSettingsSet -Compatibility Win8 -StartWhenAvailable
+$principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -RunLevel Highest
+$params = @{
+	"TaskName"	=	"Update Cleanup"
+	"Action"	=	$action
+	"Trigger"	=	$trigger
+	"Settings"	=	$settings
+	"Principal"	=	$principal
+}
+Register-ScheduledTask @params -Force
+# Create a task in the Task Scheduler to clear the $env:SystemRoot\SoftwareDistribution\Download folder
+# The task runs on Thursdays every 4 weeks
+# Создать задачу в Планировщике задач по очистке папки $env:SystemRoot\SoftwareDistribution\Download
+# Задача выполняется по четвергам каждую 4 неделю
+$action = New-ScheduledTaskAction -Execute powershell.exe -Argument @"
+	`$getservice = Get-Service -Name wuauserv
+	`$getservice.WaitForStatus("Stopped", "01:00:00")
+	Get-ChildItem -Path `$env:SystemRoot\SoftwareDistribution\Download -Recurse -Force | Remove-Item -Recurse -Force
+"@
+$trigger = New-JobTrigger -Weekly -WeeksInterval 4 -DaysOfWeek Thursday -At 9am
+$settings = New-ScheduledTaskSettingsSet -Compatibility Win8 -StartWhenAvailable
+$principal = New-ScheduledTaskPrincipal -UserId "NT AUTHORITY\SYSTEM" -RunLevel Highest
+$params = @{
+	"TaskName"	=	"SoftwareDistribution"
+	"Action"	=	$action
+	"Trigger"	=	$trigger
+	"Settings"	=	$settings
+	"Principal"	=	$principal
+}
+Register-ScheduledTask @params -Force
+# Create a task in the Task Scheduler to clear the $env:TEMP folder
+# The task runs every 62 days
+# Создать задачу в Планировщике задач по очистке папки $env:TEMP
+# Задача выполняется каждые 62 дня
+$action = New-ScheduledTaskAction -Execute powershell.exe -Argument @"
+	Get-ChildItem -Path `$env:TEMP -Force -Recurse | Remove-Item -Force -Recurse
+"@
+$trigger = New-ScheduledTaskTrigger -Daily -DaysInterval 62 -At 9am
+$settings = New-ScheduledTaskSettingsSet -Compatibility Win8 -StartWhenAvailable
+$principal = New-ScheduledTaskPrincipal -UserId "NT AUTHORITY\SYSTEM" -RunLevel Highest
+$params = @{
+	"TaskName"	=	"Temp"
+	"Action"	=	$action
+	"Trigger"	=	$trigger
+	"Settings"	=	$settings
+	"Principal"	=	$principal
+}
+Register-ScheduledTask @params -Force
+#endregion Scheduled tasks
+
 #region DNS
 Get-DnsClientServerAddress -AddressFamily IPv4 | Where-Object ServerAddresses -NE $null | Set-DnsClientServerAddress -ServerAddresses 1.1.1.1, 1.0.0.1
 Get-DnsClientServerAddress -AddressFamily IPv6 | Where-Object ServerAddresses -NE $null | Set-DnsClientServerAddress -ServerAddresses 2606:4700:4700::1111, 2606:4700:4700::1001
@@ -547,9 +978,10 @@ pyenv rehash
 
 #region Node
 nvm on
-$nodeversion = ((Invoke-WebRequest -Uri https://nodejs.org/dist/index.json | ConvertFrom-Json) | Where-Object { $_.lts -cne $false })[0].version.substring(1)
+$nodeversion = ((Invoke-WebRequest -Uri https://nodejs.org/dist/index.json -UseBasicParsing | ConvertFrom-Json) | Where-Object { $_.lts -cne $false })[0].version.substring(1)
 nvm install $nodeversion
 nvm use $nodeversion
+npm-v
 Get-Content ".\install\npm.txt" | ForEach-Object {
 	npm install -g "$_"
 }
@@ -574,9 +1006,10 @@ Get-Content ".\install\npm.txt" | ForEach-Object {
 #endregion Aria2
 
 #region Random stuffs
-
-Append-EnvPath("C:\Program Files\mpv.net")
 git config --global core.editor "code --wait"
+Set-Environment "EDITOR" "code --wait"
+Set-Environment "GIT_EDITOR""code --wait"
+Append-EnvPath("C:\Program Files\mpv.net")
 code --install-extension Shan.code-settings-sync
 #endregion Random stuffs
 

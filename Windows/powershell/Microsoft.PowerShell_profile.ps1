@@ -1,8 +1,8 @@
 # Runs all .ps1 files in this module's directory
-Get-ChildItem -Path $PSScriptRoot\*.ps1 | Where-Object name -NotMatch 'Microsoft.PowerShell_profile' | Foreach-Object { . $_.FullName }
+# Get-ChildItem -Path $PSScriptRoot\*.ps1 | Where-Object name -NotMatch 'Microsoft.PowerShell_profile' | Foreach-Object { . $_.FullName }
+. $PSScriptRoot\functions.ps1
+. $PSScriptRoot\aliases.ps1
 
-Import-Module Terminal-Icons
-Import-Module TabExpansionPlusPlus
 Import-Module PSReadLine
 Import-Module Get-ChildItemColor
 Import-Module posh-with

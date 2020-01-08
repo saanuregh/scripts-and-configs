@@ -9,10 +9,10 @@ function Edit-Profile { Invoke-Expression "$(if($env:EDITOR -ne $null)  {$env:ED
 # Sudo
 function sudo() {
     if ($args.Length -eq 1) {
-        start-process $args[0] -verb "runAs"
+        Start-Process $args[0] -verb "runAs"
     }
     if ($args.Length -gt 1) {
-        start-process $args[0] -ArgumentList $args[1..$args.Length] -verb "runAs"
+        Start-Process $args[0] -ArgumentList $args[1..$args.Length] -verb "runAs"
     }
 }
 
@@ -81,14 +81,12 @@ function Refresh-Environment {
             Set-Item -Path Env:\$name -Value $value
         }
     }
-
     $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
 }
 function Update-SessionEnvironmentPYENV {
     Refresh-Environment
     pyenv.bat rehash
 }
-
 # Set a permanent Environment variable, and reload it into $env
 function Set-Environment([String] $variable, [String] $value) {
     Set-ItemProperty "HKCU:\Environment" $variable $value
@@ -99,7 +97,6 @@ function Set-Environment([String] $variable, [String] $value) {
 # Add a folder to $env:Path
 function Prepend-EnvPath([String]$path) { [System.Environment]::SetEnvironmentVariable("PATH", $path + ";" + $Env:Path, "Machine") }
 function Append-EnvPath([String]$path) { [System.Environment]::SetEnvironmentVariable("PATH", $Env:Path + ";" + $path, "Machine") }
-
 
 # Utilities
 

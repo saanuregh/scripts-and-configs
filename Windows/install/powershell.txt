@@ -1,5 +1,4 @@
-Terminal-Icons
-TabExpansionPlusPlus
 Get-ChildItemColor
 posh-with
 DockerCompletion
+PSWindowsUpdate
