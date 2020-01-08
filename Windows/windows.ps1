@@ -942,10 +942,10 @@ code --install-extension Shan.code-settings-sync
 
 #region Powershell
 Get-Content ".\install\powershell.txt" | ForEach-Object {
-	Install-Module "$_" -Scope CurrentUser -AllowClobber -Force -Confirm 
+	Install-Module "$_" -Scope CurrentUser -AllowClobber -Force
 }
 Get-Content ".\install\powershell_pre.txt" | ForEach-Object {
-	Install-Module "$_" -Scope CurrentUser -AllowClobber -AllowPrerelease -Force -Confirm
+	Install-Module "$_" -Scope CurrentUser -AllowClobber -AllowPrerelease -Force
 }
 $profileDir = Split-Path -parent $profile
 if (-Not (Test-Path $profileDir)) {
