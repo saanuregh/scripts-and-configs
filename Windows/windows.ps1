@@ -1,5 +1,5 @@
-. .\powershell\functions.ps1
-If (!Test-Administrator) {
+Unblock-File .\powershell\functions.ps1 ; . .\powershell\functions.ps1
+If (!(Test-Administrator)) {
 	Write-Host "Run as administrator!!!"; Pause; Exit
 }
 
