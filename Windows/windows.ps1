@@ -945,7 +945,7 @@ Get-Content ".\install\powershell.txt" | ForEach-Object {
 	Install-Module "$_" -Scope CurrentUser -AllowClobber -Force
 }
 Get-Content ".\install\powershell_pre.txt" | ForEach-Object {
-	Install-Module "$_" -Scope CurrentUser -AllowClobber -AllowPrerelease -Force
+	Install-Module "$_" -AllowPrerelease -Scope CurrentUser -AllowClobber -Force
 }
 $profileDir = Split-Path -parent $profile
 if (-Not (Test-Path $profileDir)) {
@@ -954,6 +954,6 @@ if (-Not (Test-Path $profileDir)) {
 Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/skywind3000/z.lua/master/z.lua' -Out "$profileDir\z.lua"
 Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/mattparkes/PoShFuck/master/Install-TheFucker.ps1'))
 Copy-Item -Path ./powershell/*.ps1 -Destination $profileDir
-Get-ChildItem $profileDir/powershell/* | Unblock-File -Confirm
+Get-ChildItem $profileDir/* | Unblock-File -Confirm
 Remove-DuplicateEnvPath
 #endregion Powershell
