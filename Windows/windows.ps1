@@ -1,8 +1,8 @@
-Unblock-File .\powershell\functions.ps1 ; . .\powershell\functions.ps1
+Unblock-File .\powershell\functions.ps1 
+. ".\powershell\functions.ps1"
 If (!(Test-Administrator)) {
 	Write-Host "Run as administrator!!!"; Pause; Exit
 }
-
 mkdir "temp" -Force
 
 $input = Read-Host “Enter Computer Name: ”
@@ -942,10 +942,10 @@ code --install-extension Shan.code-settings-sync
 
 #region Powershell
 Get-Content ".\install\powershell.txt" | ForEach-Object {
-	Install-Module "$_" -Scope CurrentUser -AllowClobber -Force
+	Install-Module "$_" -Scope CurrentUser -AllowClobber -Force -Confirm 
 }
 Get-Content ".\install\powershell_pre.txt" | ForEach-Object {
-	Install-Module "$_" -Scope CurrentUser -AllowClobber -AllowPrerelease -Force
+	Install-Module "$_" -Scope CurrentUser -AllowClobber -AllowPrerelease -Force -Confirm
 }
 $profileDir = Split-Path -parent $profile
 if (-Not (Test-Path $profileDir)) {
