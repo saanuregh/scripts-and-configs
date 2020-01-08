@@ -887,6 +887,7 @@ $pyversion = ((pyenv install -l).split('\n') | Where-Object { $_ -like "*-amd64"
 pyenv install $pyversion
 pyenv global $pyversion
 pyenv rehash
+Refresh-Environment
 Invoke-WebRequest -Uri "https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py" -UseBasicParsing -OutFile temp\get-poetry.py; python ".\temp\get-poetry.py"
 Get-Content ".\install\pip.txt" | ForEach-Object {
 	pip install "$_"
@@ -900,6 +901,7 @@ $nodeversion = ((Invoke-WebRequest -Uri https://nodejs.org/dist/index.json -UseB
 nvm install $nodeversion
 nvm use $nodeversion
 npm -v
+Refresh-Environment
 Get-Content ".\install\npm.txt" | ForEach-Object {
 	npm install -g "$_"
 }
@@ -926,7 +928,7 @@ Get-Content ".\install\npm.txt" | ForEach-Object {
 #region Random stuffs
 git config --global core.editor "code --wait"
 Set-Environment "EDITOR" "code --wait"
-Set-Environment "GIT_EDITOR""code --wait"
+Set-Environment "GIT_EDITOR" "code --wait"
 Append-EnvPath("C:\Program Files\mpv.net")
 code --install-extension Shan.code-settings-sync
 #endregion Random stuffs
