@@ -51,9 +51,9 @@ Refresh-EnvironmentandRehash
 Get-Content ".\install\powershell.txt" | ForEach-Object {
     Install-Module "$_" -Scope CurrentUser -AllowClobber -Force
 }
-Get-Content ".\install\powershell_pre.txt" | ForEach-Object {
+Start-Process -FilePath powershell.exe -ArgumentList 'Get-Content ".\install\powershell_pre.txt" | ForEach-Object {
     Install-Module "$_" -AllowPrerelease -Scope CurrentUser -AllowClobber -Force
-}
+}'
 $profileDir = Split-Path -parent $profile
 if (-Not (Test-Path $profileDir)) { mkdir $profileDir }
 Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/skywind3000/z.lua/master/z.lua' -Out "$profileDir\z.lua"
