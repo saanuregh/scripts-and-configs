@@ -879,7 +879,9 @@ Get-DnsClientServerAddress -AddressFamily IPv6 | Where-Object ServerAddresses -N
 # Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux -NoRestart -WarningAction SilentlyContinue | Out-Null
 #endregion WSL
 
-# Install packages choco, pip and npm (global)
+# Install choco and then packages from choco, pip and npm (global)
+Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
+choco feature enable -n=allowGlobalConfirmation
 . .\packages.ps1s
 
 # Update configs

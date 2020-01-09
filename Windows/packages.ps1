@@ -2,8 +2,17 @@
 . ".\powershell\functions.ps1"
 
 #region Chocolatey 
-choco feature enable -n=allowGlobalConfirmation
-Get-Content ".\install\choco.txt" | ForEach-Object { cup.exe --ignoredetectedreboot "$_" }
+$MaxThreads = 8
+$RunspacePool = [runspacefactory]::CreateRunspacePool(1, $MaxThreads)
+$RunspacePool.Open()
+$Jobs = @()
+Get-Content ".\install\choco.txt" | ForEach-Object {
+    $PowerShell = [powershell]::Create()
+    $PowerShell.RunspacePool = $RunspacePool
+    $PowerShell.AddScript({ cup.exe --ignoredetectedreboot "$_" })
+    $Jobs += $PowerShell.BeginInvoke()
+}
+while ($Jobs.IsCompleted -contains $false) {Start-Sleep -Milliseconds 100}
 Refresh-Environment
 #endregion Chocolatey
 
