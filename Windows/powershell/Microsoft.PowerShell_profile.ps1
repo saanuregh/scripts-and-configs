@@ -16,4 +16,5 @@ if (Test-Path($ChocolateyProfile)) {
   Import-Module "$ChocolateyProfile"
 }
 
+# Starship prompt
 Invoke-Expression (&starship init powershell)

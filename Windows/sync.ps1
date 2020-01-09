@@ -6,5 +6,4 @@ Get-ChildItem $profileDir/* | Unblock-File -Confirm
 
 #region Appdata\Roaming
 Copy-Item -Path .\configs\appdata-roaming\* -Destination $env:APPDATA -Recurse -Force
-#endregion Appdata\RRoaming
-
+#endregion Appdata\Roaming

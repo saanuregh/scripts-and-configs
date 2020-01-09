@@ -44,8 +44,8 @@ function Refresh-Environment {
     $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
 }
 function Refresh-EnvironmentandRehash {
-    Refresh-Environment
     pyenv.bat rehash
+    Refresh-Environment
 }
 # Set a permanent Environment variable, and reload it into $env
 function Set-Environment([String] $variable, [String] $value) {

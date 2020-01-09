@@ -1,10 +1,18 @@
-Unblock-File .\powershell\functions.ps1 
+# Unblock all files
+Get-ChildItem -Recurse | Unblock-File
+
+# Import necessary functions
 . ".\powershell\functions.ps1"
+
+# Test if Administrator
 If (!(Test-Administrator)) {
 	Write-Host "Run as administrator!!!"; Pause; Exit
 }
+
+# Temporary folder
 mkdir "temp" -Force
 
+# Change Computer Name
 $input = Read-Host “Enter Computer Name: ”
 Rename-Computer -NewName $input -Force
 
@@ -871,92 +879,16 @@ Get-DnsClientServerAddress -AddressFamily IPv6 | Where-Object ServerAddresses -N
 # Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux -NoRestart -WarningAction SilentlyContinue | Out-Null
 #endregion WSL
 
-#region Chocolatey 
-Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
-RefreshEnv.cmd
-choco feature enable -n=allowGlobalConfirmation
-Get-Content ".\install\choco.txt" | ForEach-Object {
-	cinst.exe --ignoredetectedreboot "$_"
-}
-RefreshEnv.cmd
-Refresh-Environment
-#endregion Chocolatey
+# Install packages choco, pip and npm (global)
+. .\packages.ps1s
 
-#region Python
-$pyversion = ((pyenv install -l).split('\n') | Where-Object { $_ -like "*-amd64" })[0]
-pyenv install $pyversion
-pyenv global $pyversion
-pyenv rehash
-Refresh-Environment
-Invoke-WebRequest -Uri "https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py" -UseBasicParsing -OutFile temp\get-poetry.py; python ".\temp\get-poetry.py"
-Get-Content ".\install\pip.txt" | ForEach-Object {
-	pip install "$_"
-}
-pyenv rehash
-#endregion Python
+# Update configs
+. .\sync.ps1
 
-#region Node
-nvm on
-$nodeversion = ((Invoke-WebRequest -Uri https://nodejs.org/dist/index.json -UseBasicParsing | ConvertFrom-Json) | Where-Object { $_.lts -cne $false })[0].version.substring(1)
-nvm install $nodeversion
-nvm use $nodeversion
-npm -v
-Refresh-Environment
-Get-Content ".\install\npm.txt" | ForEach-Object {
-	npm install -g "$_"
-}
-#endregion Node
-
-#region Vscode-user
-# Invoke-WebRequest -Uri 'https://aka.ms/win32-x64-user-stable' -Out ".\temp\vscode.exe"
-# Start-Process -Wait -NoNewWindow -FilePath "vscode.exe" -ArgumentList '/verysilent /suppressmsgboxes /mergetasks="!runCode, quicklaunchicon, addcontextmenufiles, addcontextmenufolders, addtopath"' -PassThru
-# code --install-extension Shan.code-settings-sync
-#endregion Vscode-user
-
-#region Aria2
-# not in use..since its not fast enough
-# $download = (Invoke-WebRequest "https://api.github.com/repos/mayswind/AriaNg-Native/releases" | ConvertFrom-Json)[0].assets | Where-Object browser_download_url -Match "x64.msi"
-# Invoke-WebRequest -Uri $download.browser_download_url -Out ariang.msi
-# Start-Process -FilePath msiexec.exe -ArgumentList '/i', 'ariang.msi', '/q' -Wait -PassThru
-# # $userShellFoldersPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders'
-# # $downDIR = (Get-ItemProperty $userShellFoldersPath).'{374DE290-123F-4565-9164-39C4925E467B}'
-# $downDIR = Read-Host -Prompt 'Input your download location'
-# "dir=$downDIR" >> .aria2
-# nssm.exe install Aria2 powershell.exe C:\ProgramData\chocolatey\bin\aria2c.exe --conf-path=$env:USERPROFILE\.aria2 
-#endregion Aria2
-
-#region Random stuffs
+#region Misc
 git config --global core.editor "code --wait"
 Set-Environment "EDITOR" "code --wait"
 Set-Environment "GIT_EDITOR" "code --wait"
 Append-EnvPath("C:\Program Files\mpv.net")
 code --install-extension Shan.code-settings-sync
-#endregion Random stuffs
-
-#region Gdrive mount
-# Replaced by cracked ExpanDrive ¯\_(ツ)_/¯
-# $Rconfpara = "mount --allow-other --dir-cache-time 72h --drive-chunk-size 64M --log-level INFO --vfs-read-chunk-size 32M --vfs-read-chunk-size-limit off --vfs-cache-mode full --config $env:USERPROFILE\.config\rclone\rclone.conf"
-# nssm.exe install RcloneMount1 C:\ProgramData\chocolatey\bin\rclone.exe $Rconfpara gdrive: E:
-# nssm.exe install RcloneMount2 C:\ProgramData\chocolatey\bin\rclone.exe $Rconfpara gdrivecollege: F:
-# nssm.exe set RcloneMount1 AppThrottle 10000
-# nssm.exe set RcloneMount2 AppThrottle 10000
-#endregion Gdrive mount
-
-#region Powershell
-Get-Content ".\install\powershell.txt" | ForEach-Object {
-	Install-Module "$_" -Scope CurrentUser -AllowClobber -Force
-}
-Get-Content ".\install\powershell_pre.txt" | ForEach-Object {
-	Install-Module "$_" -AllowPrerelease -Scope CurrentUser -AllowClobber -Force
-}
-$profileDir = Split-Path -parent $profile
-if (-Not (Test-Path $profileDir)) {
-	mkdir $profileDir
-}
-Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/skywind3000/z.lua/master/z.lua' -Out "$profileDir\z.lua"
-Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/mattparkes/PoShFuck/master/Install-TheFucker.ps1'))
-#endregion Powershell
-
-# Update configs
-Unblock-File .\sync.ps1
-. .\sync.ps1
+#endregion Misc
