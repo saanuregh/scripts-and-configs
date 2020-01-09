@@ -14,7 +14,7 @@ Get-Content ".\install\choco.txt" | ForEach-Object {
     $PowerShell = [powershell]::Create()
     $PowerShell.RunspacePool = $RunspacePool
     $PowerShell.AddScript( { 
-            param ($name) cup.exe --no-progress --ignoredetectedreboot $name | Out-File -Append -FilePath "C:\logs\$(($name -split ' ')[0]).txt" 
+            param ($name) cup.exe --no-progress --ignoredetectedreboot $name | Out-File -Append -FilePath "C:\logs\$name.txt" 
         })
     $PowerShell.AddArgument("$_")
     $Jobs += $PowerShell.BeginInvoke()

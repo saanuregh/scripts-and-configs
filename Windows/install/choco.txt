@@ -20,7 +20,7 @@ obs
 handbrake
 cudatext
 visualstudio2017buildtools
-git.install --params "/NoShellIntegration /NoGuiHereIntegration /NoShellHereIntegration"
+git.install
 git-credential-manager-for-windows
 docker-desktop
 virtualbox
