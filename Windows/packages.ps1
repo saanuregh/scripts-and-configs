@@ -1,6 +1,9 @@
 # Import necessary functions
 . ".\powershell\functions.ps1"
 
+# Temporary folder
+mkdir "temp" -Force
+
 #region Chocolatey 
 $MaxThreads = 8
 $RunspacePool = [runspacefactory]::CreateRunspacePool(1, $MaxThreads)
@@ -36,7 +39,6 @@ nvm on
 $nodeversion = ((Invoke-WebRequest -Uri https://nodejs.org/dist/index.json -UseBasicParsing | ConvertFrom-Json) | Where-Object { $_.lts -cne $false })[0].version.substring(1)
 nvm install $nodeversion
 nvm use $nodeversion
-npm -v
 Refresh-EnvironmentandRehash
 Invoke-Expression("npm install --dry-run -g " + ((Get-Content ".\install\npm.txt") -join ' '))
 #endregion Node
