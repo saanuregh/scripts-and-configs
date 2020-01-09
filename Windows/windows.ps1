@@ -955,7 +955,8 @@ if (-Not (Test-Path $profileDir)) {
 }
 Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/skywind3000/z.lua/master/z.lua' -Out "$profileDir\z.lua"
 Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/mattparkes/PoShFuck/master/Install-TheFucker.ps1'))
-Copy-Item -Path ./powershell/*.ps1 -Destination $profileDir
-Get-ChildItem $profileDir/* | Unblock-File -Confirm
-Remove-DuplicateEnvPath
 #endregion Powershell
+
+# Update configs
+Unblock-File .\sync.ps1
+. .\sync.ps1

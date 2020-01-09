@@ -32,6 +32,9 @@ Set-Alias fs Get-DiskUsage
 # Empty the Recycle Bin on all drives
 Set-Alias emptytrash Empty-RecycleBin
 
-Set-Alias -Name su -Value Start-PsElevatedSession
-Set-Alias sudo Elevate-Process
-Set-Alias refresh -Value Update-SessionEnvironmentPYENV
+# Sudos
+Set-Alias -Name su -Value gsudo
+${function:sudo} = { gsudo.exe @args }
+
+# alias for Refresh Environment and pyenv rehash
+Set-Alias refresh -Value Refresh-EnvironmentandRehash

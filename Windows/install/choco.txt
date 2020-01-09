@@ -35,3 +35,4 @@ streamlink
 bat
 fd
 lua53
+gsudo
