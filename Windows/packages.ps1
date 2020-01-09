@@ -14,9 +14,9 @@ Get-Content ".\install\choco.txt" | ForEach-Object {
     $PowerShell = [powershell]::Create()
     $PowerShell.RunspacePool = $RunspacePool
     $PowerShell.AddScript( { 
-        $logfile = '$_'.Split([string]'--params')[0]
-        param ($name) cup.exe --no-progress --ignoredetectedreboot $name | Out-File -Append -FilePath "C:\logs\$logfile.txt" 
-    })
+            $logfile = '$_'.Split([string]'--params')[0]
+            param ($name) cup.exe --no-progress --ignoredetectedreboot $name | Out-File -Append -FilePath "C:\logs\$logfile.txt" 
+        })
     $PowerShell.AddArgument("$_")
     $Jobs += $PowerShell.BeginInvoke()
 }
@@ -30,6 +30,7 @@ pyenv install $pyversion
 pyenv global $pyversion
 Refresh-EnvironmentandRehash
 Invoke-WebRequest -Uri "https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py" -UseBasicParsing -OutFile temp\get-poetry.py; python ".\temp\get-poetry.py"
+python -m pip install -U pip
 pip install -U -r .\install\pip.txt
 Refresh-EnvironmentandRehash
 #endregion Python
