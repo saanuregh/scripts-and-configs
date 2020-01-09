@@ -6,13 +6,15 @@ $MaxThreads = 8
 $RunspacePool = [runspacefactory]::CreateRunspacePool(1, $MaxThreads)
 $RunspacePool.Open()
 $Jobs = @()
+mkdir -Path "C:\logs" -Force
 Get-Content ".\install\choco.txt" | ForEach-Object {
     $PowerShell = [powershell]::Create()
     $PowerShell.RunspacePool = $RunspacePool
-    $PowerShell.AddScript({ cup.exe --ignoredetectedreboot "$_" })
+    $PowerShell.AddScript( { param ($name) cup.exe --no-progress --ignoredetectedreboot $name | Out-File -Append -FilePath "C:\logs\$name.txt" })
+    $PowerShell.AddArgument("$_")
     $Jobs += $PowerShell.BeginInvoke()
 }
-while ($Jobs.IsCompleted -contains $false) {Start-Sleep -Milliseconds 100}
+while ($Jobs.IsCompleted -contains $false) { Start-Sleep -Milliseconds 100 }
 Refresh-Environment
 #endregion Chocolatey
 
@@ -41,15 +43,13 @@ Install-Module -Name PackageManagement -Repository PSGallery -Force
 Install-Module -Name PowerShellGet -Repository PSGallery -Force
 Refresh-EnvironmentandRehash
 Get-Content ".\install\powershell.txt" | ForEach-Object {
-	Install-Module "$_" -Scope CurrentUser -AllowClobber -Force
+    Install-Module "$_" -Scope CurrentUser -AllowClobber -Force
 }
 Get-Content ".\install\powershell_pre.txt" | ForEach-Object {
-	Install-Module "$_" -AllowPrerelease -Scope CurrentUser -AllowClobber -Force
+    Install-Module "$_" -AllowPrerelease -Scope CurrentUser -AllowClobber -Force
 }
 $profileDir = Split-Path -parent $profile
-if (-Not (Test-Path $profileDir)) {
-	mkdir $profileDir
-}
+if (-Not (Test-Path $profileDir)) { mkdir $profileDir }
 Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/skywind3000/z.lua/master/z.lua' -Out "$profileDir\z.lua"
 Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/mattparkes/PoShFuck/master/Install-TheFucker.ps1'))
 #endregion Powershell
